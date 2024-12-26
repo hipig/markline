@@ -1,0 +1,50 @@
+.line-wrapper, .line {
+    position: absolute;
+    cursor: pointer;
+    z-index: 3;
+}
+.line {
+    width: 100%;
+    height: 100%;
+}
+
+.line_mark {
+    box-sizing: border-box;
+    padding-left: 14px;
+    padding-right: 14px;
+    opacity: 0.3;
+    background-image: url('~/assets/images/line/mark-center.png');
+    background-size: 100% 100%;
+    background-clip: content-box;
+    background-repeat: repeat-x;
+}
+
+.line_mark::before, .line_mark::after {
+    position: absolute;
+    content: "";
+    height: 100%;
+    background-size: 100% 100%;
+}
+.line_mark::before {
+    left: 0;
+    width: 14px;
+    background-image: url('~/assets/images/line/mark-start.png');
+}
+.line_mark::after {
+    right: 0;
+    width: 14px;
+    background-image: url('~/assets/images/line/mark-end.png');
+}
+
+.line_color_red .line_mark {
+    filter: hue-rotate(300deg);
+}
+.line_color_purple .line_mark {
+    filter: hue-rotate(215deg);
+}
+.line_color_blue .line_mark {
+    filter: hue-rotate(170deg);
+}
+.line_color_green .line_mark {
+    filter: hue-rotate(69deg);
+}
