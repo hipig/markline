@@ -1,5 +1,5 @@
 <template>
-    <div ref="toolbarRef" class="absolute z-[9999]" :class="[toolbarPosition === 'bottom' ? 'pt-[12px]' : 'pb-[12px]']" :style="{top: `${toolbarTop}px`, left: `${toolbarLeft}px`}">
+    <div v-if="toolbarVisible" ref="toolbarRef" class="absolute z-[9999]" :class="[toolbarPosition === 'bottom' ? 'pt-[12px]' : 'pb-[12px]']" :style="{top: `${toolbarTop}px`, left: `${toolbarLeft}px`}">
         <div class="relative">
             <div ref="toolbarPanelRef" class="text-white bg-[#3a3c3e] px-[0.375rem] rounded-2xl">
                 <div class="flex items-center">
@@ -9,7 +9,7 @@
                     </button>
                 </div>
             </div>
-            <div v-if="colorVisible" class="absolute bottom-[calc(100%+0.5rem)] bg-[#3a3c3e] p-[0.625rem] rounded-2xl">
+            <div v-if="underlineVisible" class="absolute bottom-[calc(100%+0.5rem)] bg-[#3a3c3e] p-[0.625rem] rounded-2xl">
                 <div class="flex items-center flex-nowrap gap-3">
                     <button v-for="color in colorList" class="w-5 h-5 flex items-center justify-center rounded-full" :class="[color.bgColor]" @click="handleChangeColor(color.key)">
                         <div v-if="currentColor === color.key" class="i-mingcute:check-fill text-sm"></div>
@@ -26,7 +26,11 @@
                 <div v-if="range.action === 'wave'" class="line line_wave">
 
                 </div>
-                <div v-if="range.action === 'straight'" class="line line_straight"></div>
+                <div v-if="range.action === 'straight'" class="line line_straight">
+                    <span class="line_straight_start"></span>
+                    <span class="line_straight_center"></span>
+                    <span class="line_straight_end"></span>
+                </div>
             </div>
         </div>
     </div>
@@ -67,9 +71,9 @@ const colorList = [
 const toolbarRef = ref<HTMLElement | null>(null)
 const toolbarPanelRef = ref<HTMLElement | null>(null)
 
-const toolbarLeft = ref(-9999)
+const toolbarLeft = ref(0)
 
-const toolbarTop = ref(-9999)
+const toolbarTop = ref(0)
 
 const arrowLeft = ref(0)
 
@@ -80,6 +84,8 @@ const currentRange = ref<object|null>(null)
 const currentAction = ref<string|null>(null)
 
 const currentColor = ref('blue')
+
+const toolbarVisible = ref(false)
 
 const removeVisible = ref(false)
 
@@ -134,13 +140,13 @@ const actionList = computed(() => {
     ]
 })
 
-const colorVisible = computed(() => {
+const underlineVisible = computed(() => {
     return ['mark', 'wave', 'straight'].includes(currentAction.value || '')
 })
 
 const iconColor = computed(() => {
     const color = colorList.find(item => item.key === currentColor.value)
-    return color && colorVisible.value ? color.color : ''
+    return color && underlineVisible.value ? color.color : ''
 })
 
 onMounted(() => {
@@ -173,7 +179,11 @@ const handleSelection = () => {
         endOffset: range.endOffset,
         rects
     }
-    showToolbar()
+    currentAction.value = null
+    toolbarVisible.value = true
+    requestAnimationFrame(() => {
+        showToolbar()
+    })
 }
 
 const checkSelection = () => {
@@ -187,27 +197,30 @@ const checkSelection = () => {
 }
 
 const resetToolbar = () => {
-    toolbarLeft.value = -9999
-    toolbarTop.value = -9999
     arrowLeft.value = 0
+    toolbarVisible.value = false
     currentRange.value = null
     removeVisible.value = false
 }
 
-const showToolbar = () => {
+const showToolbar = (mode = 'selection') => {
     if (!currentRange.value) {
         return
     }
 
-    const rect = currentRange.value.rects[0]
+    const rect = currentRange.value.rects[0]    
 
     let top, left, position;
     const toolbarHeight = toolbarRect.value!.height;
     const toolbarWidth = toolbarRect.value!.width;
-    const scrollX = window.scrollX || window.pageXOffset;
-    const scrollY = window.scrollY || window.pageYOffset;
-    const startX = rect.left + scrollX;
-    const startY = rect.top + scrollY;
+    let startX = rect.left;
+    let startY = rect.top;
+    if (mode === 'selection') {
+        const scrollX = window.scrollX || window.pageXOffset;
+        const scrollY = window.scrollY || window.pageYOffset;
+        startX = startX + scrollX;
+        startY = startY + scrollY;
+    }
 
     const viewportWidth = document.documentElement.clientWidth;
 
@@ -216,8 +229,7 @@ const showToolbar = () => {
         top = startY - toolbarHeight;
     } else {
         position = 'bottom';
-        top = startY+ rect.height;
-        
+        top = startY + rect.height;
     }
 
     left = startX + rect.width / 2 - toolbarWidth / 2;
@@ -234,23 +246,29 @@ const showToolbar = () => {
     // 设置悬浮框的位置
     toolbarTop.value = top;
     toolbarLeft.value = left;
+    console.log('Rect0: ', rect);
+
+    console.log('toolbar: ', {top, left, position, width: toolbarWidth});
+
 
     toolbarPosition.value = position;
     arrowLeft.value = offsetX - 8;
 }
 
 const handleAction = (key: string) => {
-    currentAction.value = null
     switch (key) {
         case 'copy':
             break;
         case 'mark':
         case 'wave':
         case 'straight':
-            removeVisible.value = true
             currentAction.value = key
             updateRangeList()
             break;
+        case 'remove':
+            removeCurrentRange()
+            resetToolbar()
+            break;    
         default:
             break;
     }
@@ -265,7 +283,11 @@ const handleViewRangeLine = (range) => {
     currentRange.value = range.range
     currentAction.value = range.action
     currentColor.value = range.color
-    showToolbar()
+    toolbarVisible.value = true
+    removeVisible.value = true
+    requestAnimationFrame(() => {
+        showToolbar('view')
+    })
 }
 
 const updateRangeList = () => {
@@ -290,19 +312,32 @@ const updateRangeList = () => {
         }
     }
 
-    const rects = currentRange.value.rects || [];
+    const rangRects = currentRange.value.rects || [];
+    const scrollX = window.scrollX || window.pageXOffset;
+    const scrollY = window.scrollY || window.pageYOffset;
+    let rects = [];
     const lines = [];
-    for (let i = 0; i < rects.length; i++) {
-        const rect = rects[i];
-        const line = {
+    for (let i = 0; i < rangRects.length; i++) {
+        const rect = rangRects[i];
+        const top = rect.top + scrollY;
+        const left = rect.left + scrollX;
+        const width = rect.width;
+        const height = rect.height;
+
+        rects.push({
+            top,
+            left,
+            width,
+            height
+        })
+        lines.push({
             style: {
-                top: `${rect.top}px`,
-                left: `${rect.left}px`,
-                width: `${rect.width}px`,
-                height: `${rect.height}px`
+                top: `${top}px`,
+                left: `${left}px`,
+                width: `${width}px`,
+                height: `${height}px`
             }
-        }
-        lines.push(line)
+        })
     }
 
     rangeList.value.push({
@@ -317,5 +352,22 @@ const updateRangeList = () => {
         color: currentColor.value,
         lines
     })
+}
+
+const removeCurrentRange = () => {
+    if (!currentRange.value) {
+        return
+    }
+
+    const index = rangeList.value.findIndex(item => {
+        return item.range.startContainer === currentRange.value.startContainer &&
+            item.range.startOffset === currentRange.value.startOffset &&
+            item.range.endContainer === currentRange.value.endContainer &&
+            item.range.endOffset === currentRange.value.endOffset
+    })
+
+    if (index > -1) {
+        rangeList.value.splice(index, 1)
+    }
 }
 </script>

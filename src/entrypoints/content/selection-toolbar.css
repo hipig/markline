@@ -35,6 +35,36 @@
     width: 14px;
     background-image: url('~/assets/images/line/mark-end.png');
 }
+.line_straight {
+    transform: translateY(2px);
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    height: 100%;
+    width: 100%;
+}
+.line_straight .line_straight_start,
+.line_straight .line_straight_center,
+.line_straight .line_straight_end {
+    height: 4px;
+    display: inline-block;
+    background-size: 100% 100%;
+}
+.line_straight .line_straight_start,
+.line_straight .line_straight_end {
+    max-width: 15px;
+    flex: 1;
+}
+.line_straight .line_straight_start {
+    background-image: url('~/assets/images/line/straight-start.png');
+}
+.line_straight .line_straight_center {
+    flex: 6.67;
+    background-image: url('~/assets/images/line/straight-center.png');
+}
+.line_straight .line_straight_end {
+    background-image: url('~/assets/images/line/straight-end.png');
+}
 
 .line_color_red .line_mark {
     filter: hue-rotate(300deg);
@@ -47,4 +77,16 @@
 }
 .line_color_green .line_mark {
     filter: hue-rotate(69deg);
+}
+.line_color_purple .line_straight {
+    filter: hue-rotate(260deg);
+}
+.line_color_blue .line_straight {
+    filter: hue-rotate(225deg);
+}
+.line_color_green .line_straight {
+    filter: hue-rotate(110deg);
+}
+.line_color_amber .line_straight {
+    filter: hue-rotate(40deg) brightness(1.3);
 }
