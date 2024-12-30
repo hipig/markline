@@ -9,14 +9,14 @@
                     </button>
                 </div>
             </div>
-            <div v-if="underlineVisible" class="absolute bottom-[calc(100%+0.5rem)] bg-[#3a3c3e] p-[0.625rem] rounded-2xl">
+            <div v-if="underlineVisible" class="absolute bg-[#3a3c3e] p-[0.625rem] rounded-2xl" :class="[toolbarPosition === 'bottom' ? 'top-[calc(100%+0.5rem)]' : 'bottom-[calc(100%+0.5rem)]']">
                 <div class="flex items-center flex-nowrap gap-3">
                     <button v-for="color in colorList" class="w-5 h-5 flex items-center justify-center rounded-full" :class="[color.bgColor]" @click="handleChangeColor(color.key)">
                         <div v-if="currentColor === color.key" class="i-mingcute:check-fill text-sm"></div>
                     </button>
                 </div>
             </div>
-            <div class="absolute left-0 border-l-solid border-r-solid border-l-[8px] border-r-[8px] border-l-transparent border-r-transparent" :class="[arrowCLass]" :style="{left: `calc(50% + ${arrowLeft}px)`}"></div>
+            <div class="absolute left-0 border-l-solid border-r-solid border-l-[8px] border-r-[8px] border-l-transparent border-r-transparent z-[-1]" :class="[arrowCLass]" :style="{left: `calc(50% + ${arrowLeft}px)`}"></div>
         </div>
     </div>
     <div>
@@ -24,12 +24,14 @@
             <div v-for="line in range.lines" class="line-wrapper" :class="[`line_color_${range.color}`]" :style="{...line.style}">
                 <div v-if="range.action === 'mark'" class="line line_mark"></div>
                 <div v-if="range.action === 'wave'" class="line line_wave">
-
+                    <span class="line_wave_item line_wave_start"></span>
+                    <span class="line_wave_item line_wave_center"></span>
+                    <span class="line_wave_item line_wave_end"></span>
                 </div>
                 <div v-if="range.action === 'straight'" class="line line_straight">
-                    <span class="line_straight_start"></span>
-                    <span class="line_straight_center"></span>
-                    <span class="line_straight_end"></span>
+                    <span class="line_straight_item line_straight_start"></span>
+                    <span class="line_straight_item line_straight_center"></span>
+                    <span class="line_straight_item line_straight_end"></span>
                 </div>
             </div>
         </div>
@@ -166,6 +168,8 @@ const handleSelection = () => {
 
     const range = selection.getRangeAt(0)
     const rects = range.getClientRects()
+    console.log(range);
+    
 
     if (rects.length === 0) {
         resetToolbar()
@@ -215,16 +219,16 @@ const showToolbar = (mode = 'selection') => {
     const toolbarWidth = toolbarRect.value!.width;
     let startX = rect.left;
     let startY = rect.top;
+    const scrollX = window.scrollX || window.pageXOffset;
+    const scrollY = window.scrollY || window.pageYOffset;
     if (mode === 'selection') {
-        const scrollX = window.scrollX || window.pageXOffset;
-        const scrollY = window.scrollY || window.pageYOffset;
         startX = startX + scrollX;
         startY = startY + scrollY;
     }
 
     const viewportWidth = document.documentElement.clientWidth;
 
-    if (rect.top - toolbarHeight > 10) {
+    if (startY - scrollY - toolbarHeight > 10) {
         position = 'top';
         top = startY - toolbarHeight;
     } else {
