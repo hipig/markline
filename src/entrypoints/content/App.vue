@@ -1,7 +1,7 @@
 <template>
-    <div v-if="toolbarVisible" ref="toolbarRef" class="absolute z-[9999]" :class="[toolbarPosition === 'bottom' ? 'pt-[12px]' : 'pb-[12px]']" :style="{top: `${toolbarTop}px`, left: `${toolbarLeft}px`}">
+    <div v-if="toolbarVisible" ref="toolbarRef" class="absolute z-[9999]" :class="[toolbarCLass]" :style="{...toolbarStyle}">
         <div class="relative">
-            <div ref="toolbarPanelRef" class="text-white bg-[#3a3c3e] px-[0.375rem] rounded-2xl">
+            <div class="text-white bg-[#3a3c3e] px-[0.375rem] rounded-2xl">
                 <div class="flex items-center">
                     <button v-for="action in actionList" v-show="action?.visible !== false" class="w-[3.5rem] h-[4rem] flex flex-col items-center justify-center rounded-[0.375rem]" :class="[currentAction === action.key ? 'bg-[rgba(0,0,0,.2)]' : 'bg-transparent hover:bg-[rgba(0,0,0,.2)]']" @click="handleAction(action.key)">
                         <div class="text-xl" :class="[action.icon, currentAction === action.key ? iconColor : '']"></div>
@@ -16,23 +16,35 @@
                     </button>
                 </div>
             </div>
-            <div class="absolute left-0 border-l-solid border-r-solid border-l-[8px] border-r-[8px] border-l-transparent border-r-transparent z-[-1]" :class="[arrowCLass]" :style="{left: `calc(50% + ${arrowLeft}px)`}"></div>
+            <div class="absolute left-0 border-l-solid border-r-solid border-l-[8px] border-r-[8px] border-l-transparent border-r-transparent z-[-1]" :class="[toolbarArrowCLass]" :style="{...toolbarArrowStyle}"></div>
         </div>
     </div>
     <div>
         <div v-for="range in rangeList" @click="handleViewRangeLine(range)">
-            <div v-for="line in range.lines" class="line-wrapper" :class="[`line_color_${range.color}`]" :style="{...line.style}">
-                <div v-if="range.action === 'mark'" class="line line_mark"></div>
-                <div v-if="range.action === 'wave'" class="line line_wave">
-                    <span class="line_wave_item line_wave_start"></span>
-                    <span class="line_wave_item line_wave_center"></span>
-                    <span class="line_wave_item line_wave_end"></span>
+            <UnderLine v-for="rect in range.range.rects" :rect="rect" :type="range.action" :color="range.color"/>
+        </div>
+    </div>
+    <div v-if="false">
+        <div class="fixed inset-0 bg-[rgba(0,0,0,.1)] z-[9999]"></div>
+        <div class="absolute z-[9999]" style="top: 20%; left: 20%;">
+            <div class="relative">
+                <div class="w-[28rem] bg-gray-100 p-4 rounded-2xl">
+                    <div class="space-y-2">
+                        <div class="text-center text-lg">写想法</div>
+                        <div class="relative">
+                            <textarea class="w-full h-[10rem] px-3 py-2 bg-white border border-transparent rounded-xl focus:outline-none resize-none" placeholder="写下这一刻的想法"></textarea>
+                        </div>
+                        <div class="flex justify-end">
+                            <button class="px-[1rem] py-[0.5rem] bg-[#3a3c3e] text-white rounded-xl">保存</button>
+                        </div>
+                    </div>
                 </div>
-                <div v-if="range.action === 'straight'" class="line line_straight">
-                    <span class="line_straight_item line_straight_start"></span>
-                    <span class="line_straight_item line_straight_center"></span>
-                    <span class="line_straight_item line_straight_end"></span>
+                <div class="absolute top-2 right-2">
+                    <button class="p-2 bg-transparent">
+                        <div class="i-mingcute:close-fill text-xl"></div>
+                    </button>
                 </div>
+                <div class="absolute left-0 z-[-1]" :class="[noteArrowCLass]" :style="{left: `calc(50% + ${arrowLeft}px)`}"></div>
             </div>
         </div>
     </div>
@@ -40,6 +52,7 @@
 
 <script lang="ts" setup>
 import { ref } from 'vue'
+import UnderLine from './components/UnderLine.vue'
 import { debounce } from 'lodash'
 
 const colorList = [
@@ -71,7 +84,6 @@ const colorList = [
 ]
 
 const toolbarRef = ref<HTMLElement | null>(null)
-const toolbarPanelRef = ref<HTMLElement | null>(null)
 
 const toolbarLeft = ref(0)
 
@@ -79,7 +91,7 @@ const toolbarTop = ref(0)
 
 const arrowLeft = ref(0)
 
-const toolbarPosition = ref('top')
+const toolbarPosition = ref<'top' | 'bottom'>('top')
 
 const currentRange = ref<object|null>(null)
 
@@ -93,8 +105,38 @@ const removeVisible = ref(false)
 
 const rangeList = ref([])
 
-const arrowCLass = computed(() => {
+const notePosition = ref<'top' | 'bottom' | 'left' | 'right'>('top')
+
+const toolbarCLass = computed(() => {
+    return toolbarPosition.value === 'bottom' ? 'pt-[12px]' : 'pb-[12px]'
+})
+
+const toolbarStyle = computed(() => {
+    return {
+        top: `${toolbarTop.value}px`,
+        left: `${toolbarLeft.value}px`
+    }
+})
+
+const toolbarArrowCLass = computed(() => {
     return toolbarPosition.value === 'bottom' ? 'top-[-6px] border-b-solid border-b-[8px] border-b-[#3a3c3e]' : 'bottom-[-6px] border-t-solid border-t-[8px] border-t-[#3a3c3e]'
+})
+
+const toolbarArrowStyle = computed(() => {
+    return {
+        left: `calc(50% + ${arrowLeft.value}px)`
+    }
+})
+
+const noteArrowCLass = computed(() => {
+    const positionMap = {
+        top: 'bottom-[-8px] border-t-solid border-t-[10px] border-t-gray-100 border-l-solid border-r-solid border-l-[10px] border-r-[10px] border-l-transparent border-r-transparent',
+        bottom: 'top-[-8px] border-b-solid border-b-[10px] border-b-gray-100 border-l-solid border-r-solid border-l-[10px] border-r-[10px] border-l-transparent border-r-transparent',
+        left: 'right-[-8px] border-r-solid border-r-[10px] border-r-gray-100 border-t-solid border-b-solid border-t-[10px] border-b-[10px] border-t-transparent border-b-transparent',
+        right: 'left-[-8px] border-l-solid border-l-[10px] border-l-gray-100 border-t-solid border-b-solid border-t-[10px] border-b-[10px] border-t-transparent border-b-transparent'
+    }
+
+    return positionMap[notePosition.value]
 })
 
 const toolbarRect = computed(() => {
@@ -192,7 +234,7 @@ const handleSelection = () => {
 
 const checkSelection = () => {
     const selection = window.getSelection()
-    if (!selection || selection.isCollapsed || selection.toString().trim().length === 0 || selection.rangeCount === 0) {
+    if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
         resetToolbar()
         return false
     }
@@ -334,14 +376,6 @@ const updateRangeList = () => {
             width,
             height
         })
-        lines.push({
-            style: {
-                top: `${top}px`,
-                left: `${left}px`,
-                width: `${width}px`,
-                height: `${height}px`
-            }
-        })
     }
 
     rangeList.value.push({
@@ -353,8 +387,7 @@ const updateRangeList = () => {
             rects
         },
         action: currentAction.value,
-        color: currentColor.value,
-        lines
+        color: currentColor.value
     })
 }
 
